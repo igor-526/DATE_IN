@@ -22,7 +22,7 @@ services:
       - ./site/static:/src/static
     restart: always
   dateindb:
-    image: postgres:14-alpine3.18
+    image: postgres:14
     ports:
       - "5430:5432"
     environment:
@@ -30,6 +30,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DB}
       POSTGRES_HOST: localhost
+      PG_DATA: /var/lib/postgresql/data
     volumes:
       - ./postgres-data:/var/lib/postgresql
     networks:
@@ -48,6 +49,8 @@ services:
     networks:
       - datenetwork
     restart: always
+    ports:
+      - "8000:5000"
   redis:
     image: redis:latest
     restart: always
@@ -67,5 +70,23 @@ services:
       - redis
       - site
     command: celery -A datein beat -l info
+    networks:
+      - datenetwork
+  telegram:
+    build: tg
+    depends_on:
+      - site
+      - dateindb
+    command: python /src/main.py
+    environment:
+      DB_DB: ${DB_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      TOKEN_TG: ${TOKEN_TG}
+      TOKEN_VK: ${TOKEN_VK}
+      API_TOKEN: ${API_TOKEN}
+      VK_GROUP: ${VK_GROUP}
+      TG_WEBHOOK_MODE: ${TG_WEBHOOK_MODE}
+      TG_WEBHOOK_DOMAIN: ${TG_WEBHOOK_DOMAIN}
     networks:
       - datenetwork
