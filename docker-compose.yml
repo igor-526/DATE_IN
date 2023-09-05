@@ -5,7 +5,7 @@ networks:
         driver: bridge
 
 volumes:
-  postgres-data:
+  pgdata_datein:
 
 services:
   nginx:
@@ -30,9 +30,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DB}
       POSTGRES_HOST: localhost
-      PG_DATA: /var/lib/postgresql/data
     volumes:
-      - ./postgres-data:/var/lib/postgresql
+      - pgdata_datein:/var/lib/postgresql/data
     networks:
       - datenetwork
     restart: always
@@ -49,8 +48,6 @@ services:
     networks:
       - datenetwork
     restart: always
-    ports:
-      - "8000:5000"
   redis:
     image: redis:latest
     restart: always
@@ -61,6 +58,10 @@ services:
     depends_on:
       - redis
       - site
+    environment:
+      DB_DB: ${DB_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
     command: celery -A datein worker -l info
     networks:
       - datenetwork
@@ -69,6 +70,10 @@ services:
     depends_on:
       - redis
       - site
+    environment:
+      DB_DB: ${DB_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
     command: celery -A datein beat -l info
     networks:
       - datenetwork
@@ -88,5 +93,25 @@ services:
       VK_GROUP: ${VK_GROUP}
       TG_WEBHOOK_MODE: ${TG_WEBHOOK_MODE}
       TG_WEBHOOK_DOMAIN: ${TG_WEBHOOK_DOMAIN}
+    networks:
+      - datenetwork
+  vk:
+    build: vk
+    depends_on:
+      - site
+      - dateindb
+    command: python /src/main.py
+    environment:
+      TOKEN_VK: ${TOKEN_VK}
+      TOKEN_VK_SERV: ${TOKEN_VK_SERV}
+      TOKEN_TG: ${TOKEN_TG}
+      API_TOKEN: ${API_TOKEN}
+      VK_GROUP: ${VK_GROUP}
+      DB_DB: ${DB_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      VK_CALLBACK_MODE: ${VK_CALLBACK_MODE}
+      VK_CONFIRMATION_KEY: ${VK_CONFIRMATION_KEY}
+      VK_SECRET_KEY: ${VK_SECRET_KEY}
     networks:
       - datenetwork
